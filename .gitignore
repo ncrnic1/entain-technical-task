@@ -1,5 +1,7 @@
 api/api
 racing/racing
+.vs
+*.exe
 .DS_STORE
 *.out
 .idea
