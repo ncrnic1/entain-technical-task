@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"sort"
 
 	"git.neds.sh/matty/entain/racing/proto/racing"
 )
@@ -58,7 +59,7 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 		return nil, err
 	}
 
-	return r.scanRaces(rows)
+	return r.scanRaces(rows, filter.OrderByAsc)
 }
 
 func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFilter) (string, []interface{}) {
@@ -86,7 +87,6 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 			args = append(args, visible)
 		}
 	}
-	
 
 	if len(clauses) != 0 {
 		query += " WHERE " + strings.Join(clauses, " AND ")
@@ -96,8 +96,7 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 }
 
 func (m *racesRepo) scanRaces(
-	rows *sql.Rows,
-) ([]*racing.Race, error) {
+	rows *sql.Rows, orderByAsc bool) ([]*racing.Race, error) {
 	var races []*racing.Race
 
 	for rows.Next() {
@@ -122,5 +121,12 @@ func (m *racesRepo) scanRaces(
 		races = append(races, &race)
 	}
 
+	sort.SliceStable(races, func(i, j int) bool {
+		if orderByAsc == true {
+			return races[i].AdvertisedStartTime.AsTime().Before(races[j].AdvertisedStartTime.AsTime())
+		} else {
+			return races[i].AdvertisedStartTime.AsTime().After(races[j].AdvertisedStartTime.AsTime())
+		}
+	})
 	return races, nil
 }
