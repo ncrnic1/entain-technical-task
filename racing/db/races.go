@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 	"sort"
+	"fmt"
 
 	"git.neds.sh/matty/entain/racing/proto/racing"
 )
@@ -19,6 +20,8 @@ type RacesRepo interface {
 
 	// List will return a list of races.
 	List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error)
+	// Get will return a race by its id.
+	Get(id int64) (*racing.Race, error)
 }
 
 type racesRepo struct {
@@ -62,6 +65,11 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 	return r.scanRaces(rows, filter.OrderByAsc)
 }
 
+func (r *racesRepo) Get(id int64) (*racing.Race, error) {
+	var row = r.db.QueryRow(getRaceQueries()[racesList] + " WHERE id = ?", id)
+	return r.scanRace(row);
+}
+
 func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFilter) (string, []interface{}) {
 	var (
 		clauses []string
@@ -94,6 +102,36 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 
 	return query, args
 }
+
+func (m *racesRepo) scanRace(
+	row *sql.Row) (*racing.Race, error) {
+		var (
+			race 			racing.Race
+			advertisedStart time.Time
+			err 			error
+		)
+		
+		if err := row.Scan(&race.Id, &race.MeetingId, &race.Name, &race.Number, &race.Visible, &advertisedStart); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+
+		ts, err := ptypes.TimestampProto(advertisedStart)
+		if err != nil {
+			return nil, nil
+		}
+
+		race.AdvertisedStartTime = ts
+		if (advertisedStart.Before(time.Now())) {
+			race.Status = "CLOSED"
+		} else {
+			race.Status = "OPEN"
+		}
+
+		return &race, nil
+	}
 
 func (m *racesRepo) scanRaces(
 	rows *sql.Rows, orderByAsc bool) ([]*racing.Race, error) {
