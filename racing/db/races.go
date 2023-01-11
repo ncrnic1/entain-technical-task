@@ -79,6 +79,15 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 		}
 	}
 
+	if len(filter.Visible) > 0 {
+		clauses = append(clauses, "visible IN ("+strings.Repeat("?,", len(filter.Visible)-1)+"?)")
+
+		for _, visible := range filter.Visible {
+			args = append(args, visible)
+		}
+	}
+	
+
 	if len(clauses) != 0 {
 		query += " WHERE " + strings.Join(clauses, " AND ")
 	}
