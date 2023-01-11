@@ -24,6 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type RacingClient interface {
 	// ListRaces returns a list of all races.
 	ListRaces(ctx context.Context, in *ListRacesRequest, opts ...grpc.CallOption) (*ListRacesResponse, error)
+	// GetRacesById returns a specific race by its id.
+	GetRaceById(ctx context.Context, in *GetRaceByIdRequest, opts ...grpc.CallOption) (*Race, error)
 }
 
 type racingClient struct {
@@ -43,12 +45,23 @@ func (c *racingClient) ListRaces(ctx context.Context, in *ListRacesRequest, opts
 	return out, nil
 }
 
+func (c *racingClient) GetRaceById(ctx context.Context, in *GetRaceByIdRequest, opts ...grpc.CallOption) (*Race, error) {
+	out := new(Race)
+	err := c.cc.Invoke(ctx, "/racing.Racing/GetRaceById", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RacingServer is the server API for Racing service.
 // All implementations must embed UnimplementedRacingServer
 // for forward compatibility
 type RacingServer interface {
 	// ListRaces returns a list of all races.
 	ListRaces(context.Context, *ListRacesRequest) (*ListRacesResponse, error)
+	// GetRacesById returns a specific race by its id.
+	GetRaceById(context.Context, *GetRaceByIdRequest) (*Race, error)
 	mustEmbedUnimplementedRacingServer()
 }
 
@@ -58,6 +71,9 @@ type UnimplementedRacingServer struct {
 
 func (UnimplementedRacingServer) ListRaces(context.Context, *ListRacesRequest) (*ListRacesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListRaces not implemented")
+}
+func (UnimplementedRacingServer) GetRaceById(context.Context, *GetRaceByIdRequest) (*Race, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRaceById not implemented")
 }
 func (UnimplementedRacingServer) mustEmbedUnimplementedRacingServer() {}
 
@@ -90,6 +106,24 @@ func _Racing_ListRaces_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Racing_GetRaceById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRaceByIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RacingServer).GetRaceById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/racing.Racing/GetRaceById",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RacingServer).GetRaceById(ctx, req.(*GetRaceByIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Racing_ServiceDesc is the grpc.ServiceDesc for Racing service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +134,10 @@ var Racing_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRaces",
 			Handler:    _Racing_ListRaces_Handler,
+		},
+		{
+			MethodName: "GetRaceById",
+			Handler:    _Racing_GetRaceById_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
