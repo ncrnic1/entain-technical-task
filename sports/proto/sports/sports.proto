@@ -1,0 +1,34 @@
+syntax = "proto3";
+package sports;
+
+option go_package = "/sports";
+
+import "google/protobuf/timestamp.proto";
+
+service Sports {
+  // ListEvents will return a collection of all events.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {}
+}
+
+/* Requests/Responses */
+
+message ListEventsRequest {
+}
+
+// Response to ListEvents call.
+message ListEventsResponse {
+  repeated Event events = 1;
+}
+
+/* Resources */
+
+// An event resource.
+message Event {
+  // ID represents a unique identifier for the event.
+  int64 id = 1;
+  // Name is the official name given to the event.
+  string name = 2;
+  // AdvertisedStartTime is the time the event is advertised to occur.
+  google.protobuf.Timestamp advertised_start_time = 3;
+}
+
