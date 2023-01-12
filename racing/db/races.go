@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 	"sort"
-	"fmt"
 
 	"git.neds.sh/matty/entain/racing/proto/racing"
 )
@@ -103,40 +102,38 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 	return query, args
 }
 
-func (m *racesRepo) scanRace(
-	row *sql.Row) (*racing.Race, error) {
-		var (
-			race 			racing.Race
-			advertisedStart time.Time
-			err 			error
-		)
-		
-		if err := row.Scan(&race.Id, &race.MeetingId, &race.Name, &race.Number, &race.Visible, &advertisedStart); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil
-			}
-			return nil, err
-		}
-
-		ts, err := ptypes.TimestampProto(advertisedStart)
-		if err != nil {
+func (m *racesRepo) scanRace(row *sql.Row) (*racing.Race, error) {
+	var (
+		race 			racing.Race
+		advertisedStart time.Time
+		err 			error
+	)
+	
+	if err := row.Scan(&race.Id, &race.MeetingId, &race.Name, &race.Number, &race.Visible, &advertisedStart); err != nil {
+		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-
-		race.AdvertisedStartTime = ts
-		if (advertisedStart.Before(time.Now())) {
-			race.Status = "CLOSED"
-		} else {
-			race.Status = "OPEN"
-		}
-
-		return &race, nil
+		return nil, err
 	}
 
-func (m *racesRepo) scanRaces(
-	rows *sql.Rows, orderByAsc bool) ([]*racing.Race, error) {
-	var races []*racing.Race
+	ts, err := ptypes.TimestampProto(advertisedStart)
+	if err != nil {
+		return nil, nil
+	}
 
+	race.AdvertisedStartTime = ts
+	if (advertisedStart.Before(time.Now())) {
+		race.Status = "CLOSED"
+	} else {
+		race.Status = "OPEN"
+	}
+
+	return &race, nil
+}
+
+func (m *racesRepo) scanRaces(rows *sql.Rows, orderByAsc bool) ([]*racing.Race, error) {
+	var races []*racing.Race
+	
 	for rows.Next() {
 		var race racing.Race
 		var advertisedStart time.Time
@@ -160,7 +157,7 @@ func (m *racesRepo) scanRaces(
 		} else {
 			race.Status = "OPEN"
 		}
-		
+
 		races = append(races, &race)
 	}
 
